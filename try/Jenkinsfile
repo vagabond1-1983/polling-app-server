@@ -51,9 +51,7 @@ podTemplate(label: label, containers: [
     }
 
     stage('更新应用') {
-      container('docker') {
-        sh 'helm list'
-      }
+      sh 'helm list'
       // withCredentials([[$class: 'UsernamePasswordMultiBinding',
       //   credentialsId: 'dockerhub',
       //   usernameVariable: 'DOCKER_HUB_USER',
