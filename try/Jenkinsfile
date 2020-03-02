@@ -49,5 +49,20 @@ podTemplate(label: label, containers: [
           }
       }
     }
+
+    stage('更新应用') {
+      container('docker') {
+        sh 'helm list'
+      }
+      // withCredentials([[$class: 'UsernamePasswordMultiBinding',
+      //   credentialsId: 'dockerhub',
+      //   usernameVariable: 'DOCKER_HUB_USER',
+      //   passwordVariable: 'DOCKER_HUB_PASSWORD']]) {
+      //     container('docker') {
+      //       echo "4. [INFO] 开始 Helm 部署"
+      //       helmDeploy()
+      //     }
+      // }
+    }
   }
 }
