@@ -2,8 +2,16 @@ def label = "slave-${UUID.randomUUID().toString()}"
 
 def helmInit(String chartDir) {
   echo "download chart from github"
-  git "https://github.com/vagabond1-1983/${chartDir}.git"
-  sh "helm lint ${chartDir}"
+  checkout(
+    [$class: 'GitSCM', 
+      branches: [[name: '*/master']], 
+      userRemoteConfigs: [[name: "${chartDir}", url: 'https://github.com/vagabond1-1983/polling-helm.git']]
+    ]
+  )
+  sh """
+    ls -l
+    helm lint ${chartDir}
+    """
 }
 
 def helmDeploy(Map args) {
