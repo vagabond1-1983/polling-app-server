@@ -78,7 +78,7 @@ podTemplate(label: label, containers: [
             echo "4. [INFO] 开始 Helm 部署"
             helmDeploy(
                 dry_run     : true,
-                name        : "polling",
+                name        : "${env.JOB_NAME}",
                 chartDir    : "polling-helm",
                 namespace   : "kube-ops",
                 tag         : "${imageTag}",
