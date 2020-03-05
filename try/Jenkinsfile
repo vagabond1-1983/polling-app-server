@@ -54,7 +54,15 @@ podTemplate(label: label, containers: [
       }
     }
     stage('构建 Docker 镜像') {
-      withCredentials([[$class: 'UsernamePasswordMultiBinding',
+      container('docker') {
+        echo "3. 构建 Docker 镜像阶段"
+        sh """
+          docker build -t ${image}:${imageTag} .
+          """
+      }
+
+      /* harbor removed in k8s
+        withCredentials([[$class: 'UsernamePasswordMultiBinding',
         credentialsId: 'dockerhub',
         usernameVariable: 'DOCKER_HUB_USER',
         passwordVariable: 'DOCKER_HUB_PASSWORD']]) {
@@ -63,14 +71,28 @@ podTemplate(label: label, containers: [
             sh """
               docker login ${dockerRegistryUrl} -u ${DOCKER_HUB_USER} -p ${DOCKER_HUB_PASSWORD}
               docker build -t ${image}:${imageTag} .
+              docker push ${image}:${imageTag}
               """
-              // harbor removed in vps
-              // docker push ${image}:${imageTag}
           }
       }
+      */
     }
 
     stage('更新应用') {
+      container('helm') {
+        echo "4. [INFO] 开始 Helm 部署"
+        helmDeploy(
+            dry_run     : true,
+            name        : "${env.JOB_NAME}",
+            chartDir    : "polling-helm",
+            namespace   : "kube-ops",
+            tag         : "${imageTag}",
+            image       : "${image}",
+        )
+        echo "[INFO] Helm 部署应用成功..."
+      }
+
+      /* no need harbor to upgrade
       withCredentials([[$class: 'UsernamePasswordMultiBinding',
         credentialsId: 'dockerhub',
         usernameVariable: 'DOCKER_HUB_USER',
@@ -89,6 +111,7 @@ podTemplate(label: label, containers: [
             )
             echo "[INFO] Helm 部署应用成功..."
           }
+          */
       }
     }
   }
