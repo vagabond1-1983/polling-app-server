@@ -1,5 +1,23 @@
 def label = "slave-${UUID.randomUUID().toString()}"
 
+def helmInit(String chartDir) {
+  echo "download chart from github"
+  git "https://github.com/vagabond1-1983/${chartDir}.git"
+  sh "helm lint ${chartDir}"
+}
+
+def helmDeploy(Map args) {
+  helmInit(args.chartDir)
+  if (args.dry_run) {
+        println "Debug 应用"
+        sh "helm upgrade --dry-run --debug --install ${args.name} ${args.chartDir} --set persistence.persistentVolumeClaim.database.storageClass=database --set api.image.repository=${args.image} --set api.image.tag=${args.tag} --set imagePullSecrets[0].name=myreg --namespace=${args.namespace}"
+    } else {
+        println "部署应用"
+        sh "helm upgrade --install ${args.name} ${args.chartDir} --set persistence.persistentVolumeClaim.database.storageClass=database --set api.image.repository=${args.image} --set api.image.tag=${args.tag} --set imagePullSecrets[0].name=myreg --namespace=${args.namespace}"
+        echo "应用 ${args.name} 部署成功. 可以使用 helm status ${args.name} 查看应用状态"
+    }
+}
+
 
 podTemplate(label: label, containers: [
   containerTemplate(name: 'maven', image: 'maven:3.6-alpine', command: 'cat', ttyEnabled: true),
@@ -52,20 +70,25 @@ podTemplate(label: label, containers: [
     }
 
     stage('更新应用') {
-      container('helm') {
-        echo "4. [INFO] 开始 Helm 部署"
-        sh 'helm list'
+      withCredentials([[$class: 'UsernamePasswordMultiBinding',
+        credentialsId: 'dockerhub',
+        usernameVariable: 'DOCKER_HUB_USER',
+        passwordVariable: 'DOCKER_HUB_PASSWORD']]) {
+          container('helm') {
+            echo "4. [INFO] 开始 Helm 部署"
+            helmDeploy(
+                dry_run     : true,
+                name        : "polling",
+                chartDir    : "polling-helm",
+                namespace   : "kube-ops",
+                tag         : "${imageTag}",
+                image       : "${image}",
+                username    : "${DOCKER_HUB_USER}",
+                password    : "${DOCKER_HUB_PASSWORD}"
+            )
+            echo "[INFO] Helm 部署应用成功..."
+          }
       }
-      
-      // withCredentials([[$class: 'UsernamePasswordMultiBinding',
-      //   credentialsId: 'dockerhub',
-      //   usernameVariable: 'DOCKER_HUB_USER',
-      //   passwordVariable: 'DOCKER_HUB_PASSWORD']]) {
-      //     container('docker') {
-      //       echo "4. [INFO] 开始 Helm 部署"
-      //       helmDeploy()
-      //     }
-      // }
     }
   }
 }
