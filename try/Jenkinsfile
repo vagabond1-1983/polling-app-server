@@ -111,8 +111,8 @@ podTemplate(label: label, containers: [
             )
             echo "[INFO] Helm 部署应用成功..."
           }
+        }
           */
-      }
     }
   }
 }
