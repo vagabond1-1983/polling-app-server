@@ -2,18 +2,21 @@ def label = "slave-${UUID.randomUUID().toString()}"
 
 def helmInit(String chartDir) {
   echo "download chart from github"
-  git url: "https://github.com/vagabond1-1983/${chartDir}.git"
-  sh 'helm lint .'
+  git url: "https://github.com/vagabond1-1983/polling-helm.git"
+  sh """
+    cp -rf . ${chartDir}
+    helm lint .
+    """
 }
 
 def helmDeploy(Map args) {
   helmInit(args.chartDir)
   if (args.dry_run) {
         println "Debug 应用"
-        sh "helm upgrade --dry-run --debug --install ${args.name} . --set persistence.persistentVolumeClaim.database.storageClass=database --set api.image.repository=${args.image} --set api.image.tag=${args.tag} --set imagePullSecrets[0].name=myreg --namespace=${args.namespace}"
+        sh "helm upgrade --dry-run --debug --install ${args.name} ${chartDir} --set persistence.persistentVolumeClaim.database.storageClass=database --set api.image.repository=${args.image} --set api.image.tag=${args.tag} --set imagePullSecrets[0].name=myreg --namespace=${args.namespace}"
     } else {
         println "部署应用"
-        sh "helm upgrade --install ${args.name} . --set persistence.persistentVolumeClaim.database.storageClass=database --set api.image.repository=${args.image} --set api.image.tag=${args.tag} --set imagePullSecrets[0].name=myreg --namespace=${args.namespace}"
+        sh "helm upgrade --install ${args.name} ${chartDir} --set persistence.persistentVolumeClaim.database.storageClass=database --set api.image.repository=${args.image} --set api.image.tag=${args.tag} --set imagePullSecrets[0].name=myreg --namespace=${args.namespace}"
         echo "应用 ${args.name} 部署成功. 可以使用 helm status ${args.name} 查看应用状态"
     }
 }
@@ -83,8 +86,8 @@ podTemplate(label: label, containers: [
         echo "4. [INFO] 开始 Helm 部署"
         helmDeploy(
             dry_run     : true,
-            name        : "${env.JOB_NAME}",
-            chartDir    : "polling-helm",
+            name        : "polling",
+            chartDir    : "polling",
             namespace   : "kube-ops",
             tag         : "${imageTag}",
             image       : "${image}",
