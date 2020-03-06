@@ -4,7 +4,8 @@ def helmInit(String chartDir) {
   echo "download chart from github"
   git url: "https://github.com/vagabond1-1983/polling-helm.git"
   sh """
-    cp -rf template ${chartDir}
+    ls -l
+    cp -rf templates ${chartDir}
     cp -rf Chart.yaml ${chartDir}
     cp -rf values.yaml ${chartDir}
     helm lint ${chartDir}
@@ -84,19 +85,31 @@ podTemplate(label: label, containers: [
       */
     }
 
-    stage('更新应用') {
-      container('helm') {
-        echo "4. [INFO] 开始 Helm 部署"
-        helmDeploy(
-            dry_run     : true,
-            name        : "polling",
-            chartDir    : "polling",
-            namespace   : "kube-ops",
-            tag         : "${imageTag}",
-            image       : "${image}",
-        )
-        echo "[INFO] Helm 部署应用成功..."
+    try {
+      stage('更新应用') {
+        container('helm') {
+          echo "4. [INFO] 开始 Helm 部署"
+          helmDeploy(
+              dry_run     : true,
+              name        : "polling",
+              chartDir    : "polling",
+              namespace   : "kube-ops",
+              tag         : "${imageTag}",
+              image       : "${image}",
+          )
+          echo "[INFO] Helm 部署应用成功..."
+        }
       }
+    } finally {
+      stage('清理现场') {
+        container('docker') {
+          echo "删除镜像${image}:${imageTag}"
+          sh """
+            docker rmi -f ${image}:${imageTag}
+          """
+        }
+      }
+    }
 
       /* no need harbor to upgrade
       withCredentials([[$class: 'UsernamePasswordMultiBinding',
@@ -119,6 +132,5 @@ podTemplate(label: label, containers: [
           }
         }
           */
-    }
   }
 }
