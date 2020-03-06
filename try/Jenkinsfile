@@ -12,7 +12,7 @@ def helmInit(String chartDir) {
 def helmDeploy(Map args) {
   if (args.dry_run) {
         println "Debug 应用"
-        sh "helm upgrade --dry-run --debug --install ${args.name} . --set persistence.persistentVolumeClaim.database.storageClass=database --set api.image.repository=${args.image} --set api.image.tag=${args.tag} --set imagePullSecrets[0].name=myreg --namespace=${args.namespace}"
+        sh "helm upgrade --dry-run --debug --install ${args.name} -f values.yaml --set persistence.persistentVolumeClaim.database.storageClass=database --set api.image.repository=${args.image} --set api.image.tag=${args.tag} --set imagePullSecrets[0].name=myreg --namespace=${args.namespace}"
     } else {
         println "部署应用"
         sh "helm upgrade --install ${args.name} . --set persistence.persistentVolumeClaim.database.storageClass=database --set api.image.repository=${args.image} --set api.image.tag=${args.tag} --set imagePullSecrets[0].name=myreg --namespace=${args.namespace}"
